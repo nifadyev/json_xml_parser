@@ -24,8 +24,9 @@ class JsonXmlParser:
         root = objectify.XML(requests.get(self.link).content)
         data = {}
 
-        for node in root.getchildren():
-            data[node.tag] = node.text
+        data[root.tag] = self.to_json(root.getchildren())
+        # for node in root.getchildren():
+        #     data[node.tag] = node.text if node.text != "" else ""
 
         with open(self.output_path, "w+") as output_file:
             dump(data, output_file)
@@ -44,3 +45,22 @@ class JsonXmlParser:
 
         with open(self.output_path, "w+") as output_file:
             output_file.write("".join(result_list))
+
+    def to_json(self, root):
+        '''Recursively creates dictionary from xml file'''
+        data = {}
+
+        for node in root:
+            if node.getchildren():
+                data[node.tag] = self.to_json(node.getchildren())
+            else:
+                if not data.get(node.tag):
+                    data[node.tag] = [node.text]
+                else:
+                    data[node.tag] += [node.text]
+
+        # Delete extra symbols [] from resulting dictionary
+        for key, value in data.items():
+            if len(value) == 1 and isinstance(value, dict):
+                data[key] = value[0]
+        return data
