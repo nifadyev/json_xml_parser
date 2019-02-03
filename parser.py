@@ -1,6 +1,6 @@
 from json import dump
 from lxml import objectify
-import requests
+from requests import get
 
 
 class JsonXmlParser:
@@ -21,7 +21,7 @@ class JsonXmlParser:
             self.__parse_json()
 
     def __parse_xml(self):
-        root = objectify.XML(requests.get(self.link).content)
+        root = objectify.XML(get(self.link).content)
         data = {}
 
         data[root.tag] = self.to_json(root.getchildren())
@@ -32,35 +32,38 @@ class JsonXmlParser:
             dump(data, output_file)
 
     def __parse_json(self):
-        root = "query"
-        result_list = list()
-
-        result_list.append('''<?xml version="1.0" encoding="UTF-8"?>''')
-        result_list.append("<%s>" % (root))
-        loaded_json = requests.get(self.link).json()
-        for tag_name in loaded_json:
-            result_list.append("<%s>%s</%s>" %
-                               (tag_name, loaded_json[tag_name], tag_name))
-        result_list.append("</%s>" % (root))
+        xml_header = '<?xml version="1.0" encoding="UTF-8"?>'
 
         with open(self.output_path, "w+") as output_file:
-            output_file.write("".join(result_list))
+            output_file.write(
+                xml_header + self.to_xml(get(self.link).json()))
 
     def to_json(self, root):
         '''Recursively creates dictionary from xml file'''
+
         data = {}
 
         for node in root:
             if node.getchildren():
                 data[node.tag] = self.to_json(node.getchildren())
             else:
-                if not data.get(node.tag):
-                    data[node.tag] = [node.text]
-                else:
+                if data.get(node.tag):
                     data[node.tag] += [node.text]
+                else:
+                    data[node.tag] = [node.text] if node.text else [""]
 
         # Delete extra symbols [] from resulting dictionary
         for key, value in data.items():
             if len(value) == 1 and isinstance(value, dict):
                 data[key] = value[0]
         return data
+
+    def to_xml(self, data):
+        '''Recursively creates string from dictionary received from json file'''
+
+        result_xml = list()
+        for key, value in data.items():
+            result_xml.append("<%s>%s</%s>" %
+                              (key, self.to_xml(value) if isinstance(value, dict) else value, key))
+
+        return "".join(result_xml)
