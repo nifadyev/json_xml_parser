@@ -1,6 +1,7 @@
 from json import dump
 from lxml import objectify
 from requests import get
+from lxml import etree
 
 
 class JsonXmlParser:
@@ -32,11 +33,10 @@ class JsonXmlParser:
             dump(data, output_file)
 
     def __parse_json(self):
-        xml_header = '<?xml version="1.0" encoding="UTF-8"?>'
-
         with open(self.output_path, "w+") as output_file:
-            output_file.write(
-                xml_header + self.to_xml(get(self.link).json()))
+            data = get(self.link).json()
+            # parent = etree.Element("query")
+            output_file.write(self.to_xml(data, None, etree.Element(next(iter(data)))))
 
     def to_json(self, root):
         '''Recursively creates dictionary from xml file'''
@@ -58,12 +58,17 @@ class JsonXmlParser:
                 data[key] = value[0]
         return data
 
-    def to_xml(self, data):
+    def to_xml(self, dictionary, parent, root):
         '''Recursively creates string from dictionary received from json file'''
 
-        result_xml = list()
-        for key, value in data.items():
-            result_xml.append("<%s>%s</%s>" %
-                              (key, self.to_xml(value) if isinstance(value, dict) else value, key))
+        for key, value in dictionary.items():
+            if isinstance(value, dict):
+                child = etree.SubElement(root, next(iter(value)))
+                self.to_xml(value, root, child)
+            elif root.text == None and root.getchildren() == []:
+                root.text = str(value)
+            else:
+                child = etree.SubElement(parent, key)
+                child.text = str(value)
 
-        return "".join(result_xml)
+        return etree.tostring(root, xml_declaration=True, encoding="utf-8", pretty_print=True).decode("utf-8")
