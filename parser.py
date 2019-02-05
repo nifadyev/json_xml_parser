@@ -61,17 +61,20 @@ class JsonXmlParser:
         return data
 
     def to_xml(self, dictionary, parent, root):
-        '''Recursively creates string from dictionary received from json file'''
+        '''Recursively fill etree.
+            Return formatted string
+        '''
 
         for key, value in dictionary.items():
             if isinstance(value, dict):
-                child = etree.SubElement(root, next(iter(value)))
-                self.to_xml(value, root, child)
+                self.to_xml(value, root, etree.SubElement(
+                    root, next(iter(value))))
+            # Fill most distant from parent leaf
             elif root.text == None and root.getchildren() == []:
                 root.text = str(value)
+            # root node is filled, fill his neighbor
             else:
-                child = etree.SubElement(parent, key)
-                child.text = str(value)
+                etree.SubElement(parent, key).text = str(value)
 
         return etree.tostring(
             root, xml_declaration=True, encoding="utf-8", pretty_print=True).decode("utf-8")
