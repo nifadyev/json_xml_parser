@@ -10,8 +10,8 @@ class JsonXmlParser:
     def __init__(self, link, output_format, output_path="output"):
         self.link = link
         self.output_format = output_format
-        self.output_path = output_path if output_path != "output" else (
-            output_path + "." + output_format)
+        self.output_path = (
+            output_path + "." + output_format) if output_path == "output" else output_path
 
     def parse(self):
         '''Parse file in order to its format'''
@@ -35,8 +35,10 @@ class JsonXmlParser:
             data = get(self.link).json()
             data_with_root = data if isinstance(
                 data[next(iter(data))], dict) else {"query": data}
+
             output_file.write(self.to_xml(
                 data_with_root, None, etree.Element(next(iter(data_with_root)))))
+
         with open(self.output_path, "r") as output_file:
             print(output_file.read())
 
@@ -70,7 +72,8 @@ class JsonXmlParser:
                 self.to_xml(value, root, etree.SubElement(
                     root, next(iter(value))))
             # Fill most distant from parent leaf
-            elif root.text == None and root.getchildren() == []:
+            # elif root.text == None and root.getchildren() == []:
+            elif root.text is None and not root.getchildren():
                 root.text = str(value)
             # root node is filled, fill his neighbor
             else:
