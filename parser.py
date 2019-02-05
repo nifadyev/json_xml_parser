@@ -36,7 +36,10 @@ class JsonXmlParser:
         with open(self.output_path, "w+") as output_file:
             data = get(self.link).json()
             # parent = etree.Element("query")
-            output_file.write(self.to_xml(data, None, etree.Element(next(iter(data)))))
+            output_file.write(self.to_xml(
+                data, None, etree.Element(next(iter(data)))))
+        # with open(self.output_path, "r") as output_file:
+        #     print(output_file.read())
 
     def to_json(self, root):
         '''Recursively creates dictionary from xml file'''
@@ -60,6 +63,12 @@ class JsonXmlParser:
 
     def to_xml(self, dictionary, parent, root):
         '''Recursively creates string from dictionary received from json file'''
+        if parent == None:
+            p_parent = etree.Element("query")
+            etree.SubElement(p_parent, root.tag)
+            # self.to_xml(dictionary, p_parent, root)
+            self.to_xml(dictionary, p_parent, p_parent)
+            return etree.tostring(p_parent, xml_declaration=True, encoding="utf-8", pretty_print=True).decode("utf-8")
 
         for key, value in dictionary.items():
             if isinstance(value, dict):
@@ -68,7 +77,10 @@ class JsonXmlParser:
             elif root.text == None and root.getchildren() == []:
                 root.text = str(value)
             else:
-                child = etree.SubElement(parent, key)
-                child.text = str(value)
+                if root.findall(key):
+                    root.findall(key)[0].text = str(value)
+                else:
+                    child = etree.SubElement(parent, key)
+                    child.text = str(value)
 
         return etree.tostring(root, xml_declaration=True, encoding="utf-8", pretty_print=True).decode("utf-8")
