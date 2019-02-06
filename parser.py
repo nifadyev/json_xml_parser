@@ -1,7 +1,6 @@
 from json import dump
-from lxml import objectify
+from lxml import objectify, etree
 from requests import get
-from lxml import etree
 
 
 class JsonXmlParser:
@@ -27,11 +26,12 @@ class JsonXmlParser:
         root = objectify.XML(get(self.link).content)
         data = {}
 
-        # root.getchildren() is depricated 
+        # root.getchildren() is depricated
         data[root.tag] = self.parse_xml(root.getchildren())
+        # print()
         # TODO: with using list(root) behaviour is differ
         # json has got extra root node
-        # data[root.tag] = self.parse_xml(list(root))
+        # data[root.tag] = self.parse_xml(list(root.iter()))
 
         with open(self.output_path, "w+") as output_file:
             dump(data, output_file)
@@ -47,8 +47,8 @@ class JsonXmlParser:
             output_file.write(self.parse_json(
                 data_with_root, None, etree.Element(next(iter(data_with_root)))))
 
-        with open(self.output_path, "r") as output_file:
-            print(output_file.read())
+        # with open(self.output_path, "r") as output_file:
+        #     print(output_file.read())
 
     def parse_xml(self, root):
         '''Recursively creates dictionary from xml file'''
@@ -59,11 +59,14 @@ class JsonXmlParser:
             child = node.getchildren()
             # child = list(node)
             if child:
-                data[node.tag] = self.parse_xml(child)
+                if isinstance(root, list) and node.tag not in data:
+                    data[node.tag] = [self.parse_xml(child)]
+                else:
+                    data[node.tag] += [self.parse_xml(child)]
             elif node.tag in data:
-                data[node.tag] += [node.pyval]
+                data[node.tag] += [node.text]
             else:
-                data[node.tag] = [node.pyval] if node.text else [""]
+                data[node.tag] = [node.text] if node.text else [""]
 
         # Delete extra symbols [] from resulting dictionary
         for key, value in data.items():
