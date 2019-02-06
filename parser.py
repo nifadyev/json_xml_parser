@@ -17,59 +17,69 @@ class JsonXmlParser:
         '''Parse file in order to its format'''
 
         if self.output_format == "json":
-            self.__parse_xml()
+            self.write_to_json()
         elif self.output_format == "xml":
-            self.__parse_json()
+            self.write_to_xml()
 
-    def __parse_xml(self):
+    def write_to_json(self):
+        ''' '''
+
         root = objectify.XML(get(self.link).content)
         data = {}
 
-        data[root.tag] = self.to_json(root.getchildren())
+        # root.getchildren() is depricated 
+        data[root.tag] = self.parse_xml(root.getchildren())
+        # TODO: with using list(root) behaviour is differ
+        # json has got extra root node
+        # data[root.tag] = self.parse_xml(list(root))
 
         with open(self.output_path, "w+") as output_file:
             dump(data, output_file)
 
-    def __parse_json(self):
+    def write_to_xml(self):
+        ''' '''
+
         with open(self.output_path, "w+") as output_file:
             data = get(self.link).json()
             data_with_root = data if isinstance(
                 data[next(iter(data))], dict) else {"query": data}
 
-            output_file.write(self.to_xml(
+            output_file.write(self.parse_json(
                 data_with_root, None, etree.Element(next(iter(data_with_root)))))
 
         with open(self.output_path, "r") as output_file:
             print(output_file.read())
 
-    def to_json(self, root):
+    def parse_xml(self, root):
         '''Recursively creates dictionary from xml file'''
 
         data = {}
 
         for node in root:
-            if node.getchildren():
-                data[node.tag] = self.to_json(node.getchildren())
+            child = node.getchildren()
+            # child = list(node)
+            if child:
+                data[node.tag] = self.parse_xml(child)
+            elif node.tag in data:
+                data[node.tag] += [node.pyval]
             else:
-                if data.get(node.tag):
-                    data[node.tag] += [node.text]
-                else:
-                    data[node.tag] = [node.text] if node.text else [""]
+                data[node.tag] = [node.pyval] if node.text else [""]
 
         # Delete extra symbols [] from resulting dictionary
         for key, value in data.items():
-            if len(value) == 1 and isinstance(value, dict):
+            if len(value) == 1 and isinstance(value, list):
                 data[key] = value[0]
+
         return data
 
-    def to_xml(self, dictionary, parent, root):
+    def parse_json(self, dictionary, parent, root):
         '''Recursively fill etree.
             Return formatted string
         '''
 
         for key, value in dictionary.items():
             if isinstance(value, dict):
-                self.to_xml(value, root, etree.SubElement(
+                self.parse_json(value, root, etree.SubElement(
                     root, next(iter(value))))
             # Fill most distant from parent leaf
             # elif root.text == None and root.getchildren() == []:
