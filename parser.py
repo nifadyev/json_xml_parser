@@ -74,7 +74,7 @@ class JsonXmlParser:
         """Parse json file to string using ElementTree
 
         Returns:
-            string -- [description]
+            string -- formatted string with xml declaration and encoding
         """
 
         for key, value in dictionary.items():
