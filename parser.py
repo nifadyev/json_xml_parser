@@ -23,11 +23,9 @@ class JsonXmlParser:
         """Load xml file and write parsed data to output file."""
 
         root = objectify.XML(get(self.link).content)
-        data = {}
-        data[root.tag] = self.parse_xml(root.getchildren())
 
         with open(self.output_path, "w+") as output_file:
-            dump(data, output_file)
+            dump(self.parse_xml(list(root)), output_file)
 
     def write_to_xml(self):
         """Load json file and write parsed data to output file."""
