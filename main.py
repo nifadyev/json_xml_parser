@@ -4,9 +4,7 @@ from requests import get
 
 
 def main():
-    '''Parse command line arguments and execute parsing to desired format
-    if  arguments are correct
-    '''
+    """Parse command line arguments, parse to desired format."""
 
     arg_parser = ArgumentParser()
     arg_parser.add_argument("link", help="link to input file")
@@ -17,6 +15,7 @@ def main():
         default="output")
     args = arg_parser.parse_args()
 
+    # Link to file should contain data
     if get(args.link).status_code != 200:
         raise ValueError("Link is broken or doesn't contain file")
 

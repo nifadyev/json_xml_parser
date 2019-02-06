@@ -4,7 +4,9 @@ from requests import get
 
 
 class JsonXmlParser:
-    '''Parser for XML and JSON files, loaded from specified link'''
+    """Parse XML and JSON files, loaded from specified link.
+        Write parsed data to file.
+    """
 
     def __init__(self, link, output_format, output_path="output"):
         self.link = link
@@ -13,51 +15,44 @@ class JsonXmlParser:
             output_path + "." + output_format) if output_path == "output" else output_path
 
     def parse(self):
-        '''Parse file in order to its format'''
+        """Call suitable function to parse input file."""
 
-        if self.output_format == "json":
-            self.write_to_json()
-        elif self.output_format == "xml":
-            self.write_to_xml()
+        self.write_to_json() if self.output_format == "json" else self.write_to_xml()
 
     def write_to_json(self):
-        ''' '''
+        """Load xml file and write parsed data to output file."""
 
         root = objectify.XML(get(self.link).content)
         data = {}
-
-        # root.getchildren() is depricated
         data[root.tag] = self.parse_xml(root.getchildren())
-        # print()
-        # TODO: with using list(root) behaviour is differ
-        # json has got extra root node
-        # data[root.tag] = self.parse_xml(list(root.iter()))
 
         with open(self.output_path, "w+") as output_file:
             dump(data, output_file)
 
     def write_to_xml(self):
-        ''' '''
+        """Load json file and write parsed data to output file."""
 
         with open(self.output_path, "w+") as output_file:
             data = get(self.link).json()
+
+            # Artificially create extra dictionary for json files without root node
             data_with_root = data if isinstance(
                 data[next(iter(data))], dict) else {"query": data}
 
             output_file.write(self.parse_json(
                 data_with_root, None, etree.Element(next(iter(data_with_root)))))
 
-        # with open(self.output_path, "r") as output_file:
-        #     print(output_file.read())
-
     def parse_xml(self, root):
-        '''Recursively creates dictionary from xml file'''
+        """Parse xml file to dictionary.
+
+        Returns:
+            dict -- parsed data loaded from link to xml file
+        """
 
         data = {}
 
         for node in root:
             child = node.getchildren()
-            # child = list(node)
             if child:
                 if isinstance(root, list) and node.tag not in data:
                     data[node.tag] = [self.parse_xml(child)]
@@ -68,7 +63,7 @@ class JsonXmlParser:
             else:
                 data[node.tag] = [node.text] if node.text else [""]
 
-        # Delete extra symbols [] from resulting dictionary
+        # Delete extra symbols [] from resulting dictionary if list of values constains only 1 value
         for key, value in data.items():
             if len(value) == 1 and isinstance(value, list):
                 data[key] = value[0]
@@ -76,19 +71,21 @@ class JsonXmlParser:
         return data
 
     def parse_json(self, dictionary, parent, root):
-        '''Recursively fill etree.
-            Return formatted string
-        '''
+        """Parse json file to string using ElementTree
+
+        Returns:
+            string -- [description]
+        """
 
         for key, value in dictionary.items():
+            # Current root node has nested nodes
             if isinstance(value, dict):
                 self.parse_json(value, root, etree.SubElement(
                     root, next(iter(value))))
             # Fill most distant from parent leaf
-            # elif root.text == None and root.getchildren() == []:
             elif root.text is None and not root.getchildren():
                 root.text = str(value)
-            # root node is filled, fill his neighbor
+            # Root node has value, fill his neighbor
             else:
                 etree.SubElement(parent, key).text = str(value)
 
