@@ -11,8 +11,8 @@ class JsonXmlParser:
     def __init__(self, link, output_format, output_path="output"):
         self.link = link
         self.output_format = output_format
-        self.output_path = (
-            output_path + "." + output_format) if output_path == "output" else output_path
+        self.output_path = "".join(
+            [output_path, ".", output_format] if output_path == "output" else [output_path])
 
     def parse(self):
         """Call suitable function to parse input file."""
@@ -55,9 +55,9 @@ class JsonXmlParser:
                 if isinstance(root, list) and node.tag not in data:
                     data[node.tag] = [self.parse_xml(child)]
                 else:
-                    data[node.tag] += [self.parse_xml(child)]
+                    data[node.tag].append(self.parse_xml(child))
             elif node.tag in data:
-                data[node.tag] += [node.text]
+                data[node.tag].extend(node.text)
             else:
                 data[node.tag] = [node.text] if node.text else [""]
 
