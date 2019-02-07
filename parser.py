@@ -1,7 +1,7 @@
-from json import dump
-from lxml import objectify, etree
-from requests import get
-
+import json
+import lxml.etree
+import lxml.objectify
+import requests
 
 class JsonXmlParser:
     """Parse XML and JSON files, loaded from specified link.
@@ -22,23 +22,23 @@ class JsonXmlParser:
     def write_to_json(self):
         """Load xml file and write parsed data to output file."""
 
-        root = objectify.XML(get(self.link).content)
+        root = lxml.objectify.XML(requests.get(self.link).content)
 
         with open(self.output_path, "w+") as output_file:
-            dump(self.parse_xml(list(root)), output_file)
+            json.dump(self.parse_xml(list(root)), output_file)
 
     def write_to_xml(self):
         """Load json file and write parsed data to output file."""
 
         with open(self.output_path, "w+") as output_file:
-            data = get(self.link).json()
+            data = requests.get(self.link).json()
 
             # Artificially create extra dictionary for json files without root node
             data_with_root = data if isinstance(
                 data[next(iter(data))], dict) else {"query": data}
 
             output_file.write(self.parse_json(
-                data_with_root, None, etree.Element(next(iter(data_with_root)))))
+                data_with_root, None, lxml.etree.Element(next(iter(data_with_root)))))
 
     def parse_xml(self, root):
         """Parse xml file to dictionary.
@@ -78,14 +78,14 @@ class JsonXmlParser:
         for key, value in dictionary.items():
             # Current root node has nested nodes
             if isinstance(value, dict):
-                self.parse_json(value, root, etree.SubElement(
+                self.parse_json(value, root, lxml.etree.SubElement(
                     root, next(iter(value))))
             # Fill most distant from parent leaf
             elif root.text is None and not root.getchildren():
                 root.text = str(value)
             # Root node has value, fill his neighbor
             else:
-                etree.SubElement(parent, key).text = str(value)
+                lxml.etree.SubElement(parent, key).text = str(value)
 
-        return etree.tostring(
+        return lxml.etree.tostring(
             root, xml_declaration=True, encoding="utf-8", pretty_print=True).decode("utf-8")
