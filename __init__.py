@@ -1,3 +1,1 @@
-import xml_to_json
-import json_to_xml
-import parser
+import json_xml_parser.parser
